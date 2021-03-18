@@ -152,7 +152,7 @@ This syntax makes the steps of the query easier to see. Note: Automatic formatte
 # fmt: off
 result = ( 
   downloads
-  .filter(F.col("size") > 100)
+  .where(F.col("size") > 100)
   .groupby("user_id")
   .agg(
     F.collect_set("file_name").alias("files")
@@ -251,15 +251,15 @@ Good naming is common practice for normal Python functions, but many PySpark exa
 # good 
 result = (
 	downloads
-	.filter((F.col("time") >= yesterday) & (F.col("time") < now))
-	.filter(F.col("size") > 100)
-	.filter(F.col("user_id").isNotNull())
+	.where((F.col("time") >= yesterday) & (F.col("time") < now))
+	.where(F.col("size") > 100)
+	.where(F.col("user_id").isNotNull())
 )
 
 # bad 
 result = (
 	downloads
-	.filter(
+	.where(
 		(F.col("time") >= yesterday) & 
 		(F.col("time") < now)) & 
 		(F.col("size") > 100) & 
@@ -269,10 +269,10 @@ result = (
 # bad
 result = (
 	downloads
-	.filter(F.col("time") >= yesterday)
-	.filter(F.col("time") < now)
-	.filter(F.col("size") > 100)
-	.filter(F.col("user_id").isNotNull())
+	.where(F.col("time") >= yesterday)
+	.where(F.col("time") < now)
+	.where(F.col("size") > 100)
+	.where(F.col("user_id").isNotNull())
 )
 ```
 Filters like this are automatically combined during Spark's optimization, so this is purely a matter of style. Keeping this distinction makes filters easier to read.
