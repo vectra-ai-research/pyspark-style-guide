@@ -1,7 +1,7 @@
 # PySpark Style Guide
  
 
-This document is a work in progress.
+This document is an evolving guide.
 
 ### Import pyspark functions, types, and window narrowly and with consistent aliases
 ```python
@@ -21,16 +21,16 @@ This prevents name collisions, as many PySpark functions have common names. This
 
 
 ### When equivalent functions are available use a common set
-|Preferred        |Alternate	      |Reason       	      	      	        |
+|Preferred        |Alternate	    |Reason       	  	      	    |
 |-----------------|-----------------|---------------------------------------|
-|where            |filter           |Less ambiguous and more similar to SQL |
-|groupby	        |groupBy	        |More consistent with Python conventions|
-|drop_duplicates  |dropDuplicates	  |More consistent with Python conventions|
-|astype  	        |cast		      	  |Arbitrary	      	      	      	    |
-|alias 	          |name		      	  |Arbitrary	      	      	      	    |
-|mean  	          |avg		      	  |More specific	      	      	        |
-|stddev	          |stddev_sample	  |More concise	      	      	      	  |
-|var   	          |var_sample		    |More concise	      	      	          |
+|`where`          |`filter`         |Less ambiguous and more similar to SQL |
+|`groupby`	  |`groupBy`	    |More consistent with Python conventions|
+|`drop_duplicates`|`dropDuplicates` |More consistent with Python conventions|
+|`astype`  	  |`cast`	    |Arbitrary	      	      	      	    |
+|`alias`          |`name`     	    |Arbitrary	      	      	      	    |
+|`mean`           |`avg`            |More specific	      	      	    |
+|`stddev`         |`stddev_sample`  |More concise	      	      	    |
+|`var`            |`var_sample`	    |More concise	      	      	    |
 ```python
 # good
 df.where(my_filter)
@@ -97,11 +97,11 @@ It is okay to reuse these variables even though they include calls to `F.col`. T
 ```python
 # good
 result = (
-	logs
-	.groupby("user_id")
-	.agg(
-		F.count("operation").alias("operation_count"),
-	)
+  logs
+  .groupby("user_id")
+  .agg(
+    F.count("operation").alias("operation_count"),
+  )
 )
 result.printSchema()
 
@@ -112,11 +112,11 @@ result.printSchema()
 
 # bad
 result = (
-	logs
-	.groupby("user_id")
-	.agg(
-		F.count("operation"),
-	)
+  logs
+  .groupby("user_id")
+  .agg(
+    F.count("operation"),
+  )
 )
 result.printSchema()
 
@@ -131,13 +131,13 @@ The default column names are usually awkward and can get long.
 ```python
 # good
 result = (
-	df
-	.groupby("user_id", "operation")
-	.agg(
-		F.min("creation_time").alias("start_time"),
-		F.max("creation_time").alias("end_time"),
-		F.collect_set("client_ip").alias("ips")
-	)
+  df
+  .groupby("user_id", "operation")
+  .agg(
+    F.min("creation_time").alias("start_time"),
+    F.max("creation_time").alias("end_time"),
+    F.collect_set("client_ip").alias("ips")
+  )
 )
 
 # bad
@@ -167,61 +167,61 @@ result = (
 ```python
 # good
 downloading_users = (
-	logs
-	.where(F.col("operation") == "Download")
-	.select("user_id")
-	.distinct()
+  logs
+  .where(F.col("operation") == "Download")
+  .select("user_id")
+  .distinct()
 )
 
 downloading_user_operations = (
-	logs
-	.join(downloading_users, "user_id")
-	.groupby("user_id")
-	.agg(
-		F.collect_set("operation").alias("operations_used")
-		F.count("operation").alias("operation_count")
-	)
+  logs
+  .join(downloading_users, "user_id")
+  .groupby("user_id")
+  .agg(
+    F.collect_set("operation").alias("operations_used")
+    F.count("operation").alias("operation_count")
+  )
 )
 
 # bad (logical chunk not broken out)
 downloading_user_operations = (
-	logs
-	.join(
-	 	(
-			logs
-			.where(F.col("operation") == "Download")
-			.select("user_id")
-			.distinct()
-		), 
-		"user_id"
-	)
-	.groupby("user_id")
-	.agg(
-		F.collect_set("operation").alias("operations_used")
-		F.count("operation").alias("operation_count")
-	)
+  logs
+  .join(
+    (
+      logs
+      .where(F.col("operation") == "Download")
+      .select("user_id")
+      .distinct()
+    ), 
+    "user_id"
+  )
+  .groupby("user_id")
+  .agg(
+    F.collect_set("operation").alias("operations_used")
+    F.count("operation").alias("operation_count")
+  )
 )
 
 # bad (chunks too small)
 download_logs = (
-	logs
-	.where(F.col("operation") == "Download")
+  logs
+  .where(F.col("operation") == "Download")
 )
 
 downloading_users = (
-	.select("user_id")
-	.distinct()
+  .select("user_id")
+  .distinct()
 )
 
 downloading_user_logs = logs.join(downloading_users, "user_id")
 
 downloading_user_operations = (
-	downloading_user_logs
-	.groupby("user_id")
-	.agg(
-		F.collect_set("operation").alias("operations_used")
-		F.count("operation").alias("operation_count")
-	)
+  downloading_user_logs
+  .groupby("user_id")
+  .agg(
+    F.collect_set("operation").alias("operations_used")
+    F.count("operation").alias("operation_count")
+  )
 )
 ```
 Choosing when and what to name variables is always a challenge. Resisting the urge to create long PySpark function chains makes the code more readable.
@@ -231,17 +231,17 @@ Choosing when and what to name variables is always a challenge. Resisting the ur
 ```python
 # good
 def get_large_downloads(downloads):
-	return (
-		downloads
-		.where(F.col("size") > 100)
-	)
+  return (
+    downloads
+    .where(F.col("size") > 100)
+  )
 
 # bad
 def get_large_downloads(df):
-	return (
-		df
-		.where(F.col("size") > 100)
-	)
+  return (
+    df
+    .where(F.col("size") > 100)
+  )
 ```
 Good naming is common practice for normal Python functions, but many PySpark examples found online refer to tables as just `df`. Finding appropriate names for dataframes makes code easier to understand quickly.
 
@@ -250,29 +250,29 @@ Good naming is common practice for normal Python functions, but many PySpark exa
 ```python
 # good 
 result = (
-	downloads
-	.where((F.col("time") >= yesterday) & (F.col("time") < now))
-	.where(F.col("size") > 100)
-	.where(F.col("user_id").isNotNull())
+  downloads
+  .where((F.col("time") >= yesterday) & (F.col("time") < now))
+  .where(F.col("size") > 100)
+  .where(F.col("user_id").isNotNull())
 )
 
 # bad 
 result = (
-	downloads
-	.where(
-		(F.col("time") >= yesterday) & 
-		(F.col("time") < now)) & 
-		(F.col("size") > 100) & 
-		F.col("user_id").isNotNull()
+  downloads
+  .where(
+    (F.col("time") >= yesterday) & 
+    (F.col("time") < now)) & 
+    (F.col("size") > 100) & 
+    F.col("user_id").isNotNull()
 )
 
 # bad
 result = (
-	downloads
-	.where(F.col("time") >= yesterday)
-	.where(F.col("time") < now)
-	.where(F.col("size") > 100)
-	.where(F.col("user_id").isNotNull())
+  downloads
+  .where(F.col("time") >= yesterday)
+  .where(F.col("time") < now)
+  .where(F.col("size") > 100)
+  .where(F.col("user_id").isNotNull())
 )
 ```
 Filters like this are automatically combined during Spark's optimization, so this is purely a matter of style. Keeping this distinction makes filters easier to read.
@@ -283,23 +283,19 @@ Filters like this are automatically combined during Spark's optimization, so thi
 # good
 window = W.Window.partitionBy(F.col("user_id"))
 result = (
-	downloads
-	.withColumn("download_count", F.count("*").over(window))
+  downloads
+  .withColumn("download_count", F.count("*").over(window))
 )
 
 # bad
 result = (
-	downloads
-	.join(
-		downloads
-		.groupby("user_id")
-		.agg(F.count("*").alias("download_count")),
-		"user_id"
-	)
+  downloads
+  .join(
+    downloads
+    .groupby("user_id")
+    .agg(F.count("*").alias("download_count")),
+    "user_id"
+  )
 )
 ```
 The window function version is usually easier to get right and is usually more concise.
-
-
-
- 
