@@ -2,7 +2,25 @@
  
 
 This document is an evolving guide.
+## Table of Contents
+- [PySpark Style Guide](#pyspark-style-guide)
+  - [Table of Contents](#table-of-contents)
+  - [Guide](#guide)
+    - [Import pyspark functions, types, and window narrowly and with consistent aliases](#import-pyspark-functions-types-and-window-narrowly-and-with-consistent-aliases)
+    - [When equivalent functions are available use a common set](#when-equivalent-functions-are-available-use-a-common-set)
+    - [Use column name strings to access columns](#use-column-name-strings-to-access-columns)
+    - [When a function accepts a column or column name, use the column name option](#when-a-function-accepts-a-column-or-column-name-use-the-column-name-option)
+    - [When a function accepts unlimited arguments, use that feature instead of a passing list](#when-a-function-accepts-unlimited-arguments-use-that-feature-instead-of-a-passing-list)
+    - [Factor out common logic](#factor-out-common-logic)
+    - [When the output of a function is stored as a column, give the column a concise name](#when-the-output-of-a-function-is-stored-as-a-column-give-the-column-a-concise-name)
+    - [When chaining several functions, open a cleanly indentable block using parentheses](#when-chaining-several-functions-open-a-cleanly-indentable-block-using-parentheses)
+    - [Try to break the query into reasonably sized named chunks](#try-to-break-the-query-into-reasonably-sized-named-chunks)
+    - [Use descriptive names for dataframes](#use-descriptive-names-for-dataframes)
+    - [Group related filters, keep unrelated filters as serial `filter` calls](#group-related-filters-keep-unrelated-filters-as-serial-filter-calls)
+    - [Prefer use of window functions to equivalent re-joining operations](#prefer-use-of-window-functions-to-equivalent-re-joining-operations)
 
+
+## Guide
 ### Import pyspark functions, types, and window narrowly and with consistent aliases
 ```python
 # good
