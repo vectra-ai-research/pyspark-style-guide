@@ -1,7 +1,9 @@
 # PySpark Style Guide
  
+The purpose of this document is to allow us to write consistent and readable PySpark code. As we have shifted from using PySpark strictly for analysis to using it in production, code quality has become much more important. We hope this guide will allow us write better PySpark programs.
+This document is an evolving guide. Please feel free to suggest additions or changes (see our section on [contributing](#contributing)).
 
-This document is an evolving guide.
+
 ## Table of Contents
 - [PySpark Style Guide](#pyspark-style-guide)
   - [Table of Contents](#table-of-contents)
@@ -18,6 +20,7 @@ This document is an evolving guide.
     - [Use descriptive names for dataframes](#use-descriptive-names-for-dataframes)
     - [Group related filters, keep unrelated filters as serial `filter` calls](#group-related-filters-keep-unrelated-filters-as-serial-filter-calls)
     - [Prefer use of window functions to equivalent re-joining operations](#prefer-use-of-window-functions-to-equivalent-re-joining-operations)
+  - [Contributing](#contributing)
 
 
 ## Guide
@@ -256,3 +259,6 @@ result = downloads.join(
 )
 ```
 The window function version is usually easier to get right and is usually more concise.
+
+## Contributing
+One of the main purposes of this document is to encourange consistency. Some choices made here are artibrary, but we hope they will lead to more readable code. Other choices may prove wrong with more time and experience. Suggestions for changes to the guide or additions to it are welcome. Please feel free to create an issue or pull request to start a discussion.
