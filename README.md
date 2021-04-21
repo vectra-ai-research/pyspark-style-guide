@@ -12,7 +12,7 @@ This document is an evolving guide. Please feel free to suggest additions or cha
     - [When equivalent functions are available use a common set](#when-equivalent-functions-are-available-use-a-common-set)
     - [Use column name strings to access columns](#use-column-name-strings-to-access-columns)
     - [When a function accepts a column or column name, use the column name option](#when-a-function-accepts-a-column-or-column-name-use-the-column-name-option)
-    - [When a function accepts unlimited arguments, use that feature instead of a passing list](#when-a-function-accepts-unlimited-arguments-use-that-feature-instead-of-a-passing-list)
+    - [When a function accepts unlimited arguments, avoid passing a list](#when-a-function-accepts-unlimited-arguments-avoid-passing-a-list)
     - [Factor out common logic](#factor-out-common-logic)
     - [When the output of a function is stored as a column, give the column a concise name](#when-the-output-of-a-function-is-stored-as-a-column-give-the-column-a-concise-name)
     - [When chaining several functions, open a cleanly indentable block using parentheses](#when-chaining-several-functions-open-a-cleanly-indentable-block-using-parentheses)
@@ -89,7 +89,7 @@ F.collect_set(F.col("client_ip"))
 Expressions are easier to read without the extra noise of `F.col()`.
 
 
-### When a function accepts unlimited arguments, use that feature instead of a passing list
+### When a function accepts unlimited arguments, avoid passing a list
 ```python
 # good
 groupby("user_id", "operation")
@@ -141,7 +141,7 @@ result.printSchema()
 #  |-- user_id: string
 #  |-- count(operation): long
 ```
-The default column names are usually awkward and can get long.
+The default column names are usually awkward, probably defy the naming style of other columns, and can get long.
 
 
 ### When chaining several functions, open a cleanly indentable block using parentheses
@@ -168,6 +168,7 @@ result = df.groupby("user_id", "operation").agg(
 
 ### Try to break the query into reasonably sized named chunks
 ```python
+# good
 downloading_users = logs.where(F.col("operation") == "Download").select("user_id").distinct()
 
 downloading_user_operations = (
