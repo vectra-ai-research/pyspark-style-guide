@@ -262,4 +262,4 @@ result = downloads.join(
 The window function version is usually easier to get right and is usually more concise.
 
 ## Contributing
-One of the main purposes of this document is to encourange consistency. Some choices made here are artibrary, but we hope they will lead to more readable code. Other choices may prove wrong with more time and experience. Suggestions for changes to the guide or additions to it are welcome. Please feel free to create an issue or pull request to start a discussion.
+One of the main purposes of this document is to encourage consistency. Some choices made here are arbitrary, but we hope they will lead to more readable code. Other choices may prove wrong with more time and experience. Suggestions for changes to the guide or additions to it are welcome. Please feel free to create an issue or pull request to start a discussion.
