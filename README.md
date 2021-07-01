@@ -1,10 +1,6 @@
 # PySpark Style Guide
  
-The purpose of this document is to help teams to write readable and maintainable PySpark programs. The quality of PySpark code is important but commonly neglected.  The focus of PySpark references is commonly on analysis, and not on writing code for production. As a result, it has few established patterns and best practices. We developed this guide to improve our PySpark usage, particularly in production. We hope others find it useful.
-
-We hope this guide will help readers write higher quality PySpark programs.
-This document is an evolving guide. Please feel free to suggest additions or changes (see our section on [contributing](#contributing)).
-
+The purpose of this document is to help teams write readable and maintainable PySpark programs. This style guide is designed to complement [Black's](https://github.com/psf/black) automatic formatting of Python code. For each style choice, we provide an example and the reasoning behind it. We hope this guide will help readers write higher quality PySpark programs. This document is an evolving guide. We encourage your suggestions, additions, or improvements (see our section on [contributing](#contributing)).
 
 ## Table of Contents
 - [PySpark Style Guide](#pyspark-style-guide)
