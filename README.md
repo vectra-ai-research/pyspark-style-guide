@@ -1,6 +1,8 @@
 # PySpark Style Guide
  
-The purpose of this document is to allow us to write consistent and readable PySpark code. As we have shifted from using PySpark strictly for analysis to using it in production, code quality has become much more important. We hope this guide will allow us write better PySpark programs.
+The purpose of this document is to help teams to write readable and maintainable PySpark programs. The quality of PySpark code is important but commonly neglected.  The focus of PySpark references is commonly on analysis, and not on writing code for production. As a result, it has few established patterns and best practices. We developed this guide to improve our PySpark usage, particularly in production. We hope others find it useful.
+
+We hope this guide will help readers write higher quality PySpark programs.
 This document is an evolving guide. Please feel free to suggest additions or changes (see our section on [contributing](#contributing)).
 
 
@@ -48,7 +50,7 @@ This prevents name collisions, as many PySpark functions have common names. This
 | `groupby`         | `groupBy`        | More consistent with Python conventions |
 | `drop_duplicates` | `dropDuplicates` | More consistent with Python conventions |
 | `astype`          | `cast`           | Arbitrary                               |
-| `alias`           | `name`           | Arbitrary                               |
+| `alias`           | `name`           | More specific                           |
 | `mean`            | `avg`            | More specific                           |
 | `stddev`          | `stddev_sample`  | More concise                            |
 | `var`             | `var_sample`     | More concise                            |
