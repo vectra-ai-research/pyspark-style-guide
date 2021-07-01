@@ -1,6 +1,12 @@
 # PySpark Style Guide
- 
-The purpose of this document is to help teams write readable and maintainable PySpark programs. This style guide is designed to complement [Black's](https://github.com/psf/black) automatic formatting of Python code. For each style choice, we provide an example and the reasoning behind it. We hope this guide will help readers write higher quality PySpark programs. This document is an evolving guide. We encourage your suggestions, additions, or improvements (see our section on [contributing](#contributing)).
+
+<!-- TODO: Reenable license badge once public!-->
+<!-- [GitHub](https://img.shields.io/github/license/vectrai-ai-research/pyspark-style-guide)-->
+![Github](https://img.shields.io/badge/code%20style-black-000000.svg)
+
+The purpose of this document is to help teams write readable and maintainable programs using [Apache PySpark](https://spark.apache.org/docs/latest/api/python/). This style guide is designed to complement [Black's](https://github.com/psf/black) automatic formatting of Python code. For each style choice, we provide an example and the reasoning behind it. We hope they will make it easier to write high quality PySpark code. 
+
+This document is an evolving guide. We encourage your suggestions, additions, or improvements (see our section on [contributing](#contributing)).
 
 ## Table of Contents
 - [PySpark Style Guide](#pyspark-style-guide)
