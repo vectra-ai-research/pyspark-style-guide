@@ -264,5 +264,60 @@ result = downloads.join(
 ```
 The window function version is usually easier to get right and is usually more concise.
 
+
+### Create multiple new columns using `select` instead of `withColumn`
+```python
+window = W.Window.partitionBy(F.col("user_id"))
+
+# Option A: good
+df.select(
+    "client_ip",
+    F.coalesce("previous_domains", F.array([])).alias("previous_domains"),
+    F.array_except("domains", "previous_domains").alias("new_domains"),
+    F.col("user_id").alias("user_name"),
+)
+
+# Option B: bad in most cases (can lead to duplicate column names)
+# could be useful if there is a large number of columns
+df.select(
+    "*",
+    F.coalesce("previous_domains", F.array([])).alias("previous_domains"),
+    F.array_except("domains", "previous_domains").alias("new_domains"),
+    F.col("user_id").alias("user_name"),
+)
+
+# Option C: bad
+df.withColumn(
+    "previous_domains", F.coalesce("previous_domains", F.array([]))
+).withColumn(
+    "new_domains", F.array_except("domains", "previous_domains")
+).withColumnRenamed(
+    "user_id", "user_name"
+)
+```
+In addition to improved readability, using `select` to create new columns provides an additional advantage: it ensures that all of the columns are created in only one `Project` stage, whereas 
+`withColumn` creates additional internal projection stages (see the [PySpark documentation](https://spark.apache.org/docs/latest/api/python/reference/api/pyspark.sql.DataFrame.withColumn.html)). Using a single `select` statement simplifies the physical plan and will likely improve query performance.
+
+Here is how the physical plan differs for the examples above:
+- Option A
+```
+== Physical Plan ==
+*(1) Project [client_ip#50129, coalesce(previous_domains#50131, []) AS previous_domains#50206, array_except(domains#50130, previous_domains#50131) AS new_domains#50207, user_id#50132 AS user_name#50208]
++- *(1) Scan ExistingRDD[client_ip#50129,domains#50130,previous_domains#50131,user_id#50132]
+```
+- Option B (this produces a dataframe with duplicate column names)
+```
+== Physical Plan ==
+*(1) Project [client_ip#50129, domains#50130, previous_domains#50131, user_id#50132, coalesce(previous_domains#50131, []) AS previous_domains#50213, array_except(domains#50130, previous_domains#50131) AS new_domains#50214, user_id#50132 AS user_name#50215]
++- *(1) Scan ExistingRDD[client_ip#50129,domains#50130,previous_domains#50131,user_id#50132]
+```
+- Option C
+```
+== Physical Plan ==
+*(1) Project [client_ip#50129, domains#50130, previous_domains#50223, user_id#50132 AS user_name#50234, array_except(domains#50130, previous_domains#50223) AS new_domains#50228]
++- *(1) Project [client_ip#50129, domains#50130, coalesce(previous_domains#50131, []) AS previous_domains#50223, user_id#50132]
+   +- *(1) Scan ExistingRDD[client_ip#50129,domains#50130,previous_domains#50131,user_id#50132]
+```
+
 ## Contributing
 One of the main purposes of this document is to encourage consistency. Some choices made here are arbitrary, but we hope they will lead to more readable code. Other choices may prove wrong with more time and experience. Suggestions for changes to the guide or additions to it are welcome. Please feel free to create an issue or pull request to start a discussion.
