@@ -23,6 +23,7 @@ This document is an evolving guide. We encourage your suggestions, additions, or
     - [Use descriptive names for dataframes](#use-descriptive-names-for-dataframes)
     - [Group related filters, keep unrelated filters as serial `filter` calls](#group-related-filters-keep-unrelated-filters-as-serial-filter-calls)
     - [Prefer use of window functions to equivalent re-joining operations](#prefer-use-of-window-functions-to-equivalent-re-joining-operations)
+    - [If feasible, `select` columns explicitly and avoid chaining `withColumn`](#if-feasible-select-columns-explicitly-and-avoid-chaining-withcolumn)
   - [Contributing](#contributing)
 
 
@@ -265,7 +266,7 @@ result = downloads.join(
 The window function version is usually easier to get right and is usually more concise.
 
 
-### Create multiple new columns using `select` instead of `withColumn`
+### If feasible, `select` columns explicitly and avoid chaining `withColumn`
 ```python
 previous_domains = F.coalesce("previous_domains", F.array([]))
 
@@ -278,16 +279,17 @@ df.select(
     F.col("user_id").alias("user_name")
 )
 
-# Option B: bad - the old previous_domains column is used to create new_domains (may result in unwanted null values)
+# Option B: bad - F.array_except uses the original "previous_domains" column
+# In this case, some values in the "new_domains" column may be null.
 df.select(
     "ip",
     "domains",
-    F.coalesce("previous_domains", F.array([])).alias("previous_domains"),
+    previous_domains.alias("previous_domains"),
     F.array_except("domains", "previous_domains").alias("new_domains"),
     F.col("user_id").alias("user_name")
 )
 
-# Option C: bad - not explicit, may result in duplicate column names
+# Option C: bad - not explicit, selects two different columns both named "previous_domains"
 df.select(
     "*",
     previous_domains.alias("previous_domains"),
@@ -297,36 +299,37 @@ df.select(
 
 # Option D: bad - involves an additional Project stage
 df.withColumn(
-    "previous_domains", F.coalesce("previous_domains", F.array([]))
+    "previous_domains", previous_domains
 ).withColumn(
     "new_domains", F.array_except("domains", "previous_domains")
 ).withColumnRenamed(
     "user_id", "user_name"
 )
 ```
-In addition to improved readability, using `select` to create new columns provides an additional advantage: it ensures that all of the columns are created in only one `Project` stage, whereas 
-`withColumn` creates additional internal projection stages (see the [PySpark documentation](https://spark.apache.org/docs/latest/api/python/reference/api/pyspark.sql.DataFrame.withColumn.html)). Using a single `select` statement simplifies the physical plan and will likely improve query performance.
+In addition to improving readability, using `select` to create new columns provides an additional advantage: `select` ensures that all of the columns are created in only one `Project` stage, whereas `withColumn` creates additional internal projection stages (see the caveat in the [PySpark documentation](https://spark.apache.org/docs/latest/api/python/reference/api/pyspark.sql.DataFrame.withColumn.html)). Using a single `select` statement simplifies the physical plan and will likely improve query performance. 
 
-Here is how the physical plan differs for the examples above:
+However, when adding just a single column, `select` and `withColumn` should yield the same physical plan. In that case, `withColumn` would be a better stylistic choice.
+
+To better understand the differences between `select` and `withColumn`, compare the physical plans for each of the examples above:
 - Option A
 ```
 == Physical Plan ==
 *(1) Project [ip#10149, domains#10148, coalesce(previous_domains#10150, []) AS previous_domains#10194, array_except(domains#10148, coalesce(previous_domains#10150, [])) AS new_domains#10195, user_id#10151 AS user_name#10196]
 +- *(1) Scan ExistingRDD[domains#10148,ip#10149,previous_domains#10150,user_id#10151]
 ```
-- Option B - `previous_domains#10150` efers to the original column (not coalesced with `[]`)
+- Option B - note that `array_except` uses `"previous_domains#10150"` instead of `"previous_domains#10202"`
 ```
 == Physical Plan ==
 *(1) Project [ip#10149, domains#10148, coalesce(previous_domains#10150, []) AS previous_domains#10202, array_except(domains#10148, previous_domains#10150) AS new_domains#10203, user_id#10151 AS user_name#10204]
 +- *(1) Scan ExistingRDD[domains#10148,ip#10149,previous_domains#10150,user_id#10151]
 ```
-- Option C - unwanted or duplicate columns
+- Option C - note the duplicated column name: `"previous_domains#10150"` and `"previous_domains#10210"`
 ```
 == Physical Plan ==
 *(1) Project [domains#10148, ip#10149, previous_domains#10150, user_id#10151, coalesce(previous_domains#10150, []) AS previous_domains#10210, array_except(domains#10148, coalesce(previous_domains#10150, [])) AS new_domains#10211, user_id#10151 AS user_name#10212]
 +- *(1) Scan ExistingRDD[domains#10148,ip#10149,previous_domains#10150,user_id#10151]
 ```
-- Option D - additional Project stage
+- Option D - replacing the `"previous_domains"` column introduces an additional `Project` stage
 ```
 == Physical Plan ==
 *(1) Project [domains#10148, ip#10149, previous_domains#10220, user_id#10151 AS user_name#10231, array_except(domains#10148, previous_domains#10220) AS new_domains#10225]
