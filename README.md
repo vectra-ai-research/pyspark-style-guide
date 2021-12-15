@@ -268,40 +268,38 @@ The window function version is usually easier to get right and is usually more c
 
 ### If feasible, `select` columns explicitly and avoid chaining `withColumn`
 ```python
-previous_domains = F.coalesce("previous_domains", F.array([]))
+previous_ips = F.coalesce("previous_ips", F.array([]))
 
 # Option A: good
 df.select(
-    "ip",
-    "domains",
-    previous_domains.alias("previous_domains"),
-    F.array_except("domains", previous_domains).alias("new_domains"),
+    "ip_addresses",
+    previous_ips.alias("previous_ips"),
+    F.array_except("ip_addresses", previous_ips).alias("new_ips"),
     F.col("user_id").alias("user_name")
 )
 
-# Option B: bad - F.array_except uses the original "previous_domains" column
-# In this case, some values in the "new_domains" column may be null.
+# Option B: bad - F.array_except uses the original "previous_ips" column
+# In this case, some values in the "new_ips" column may be null.
 df.select(
-    "ip",
-    "domains",
-    previous_domains.alias("previous_domains"),
-    F.array_except("domains", "previous_domains").alias("new_domains"),
+    "ip_addresses",
+    previous_ips.alias("previous_ips"),
+    F.array_except("ip_addresses", "previous_ips").alias("new_ips"),
     F.col("user_id").alias("user_name")
 )
 
-# Option C: bad - not explicit, selects two different columns both named "previous_domains"
+# Option C: bad - not explicit, selects two different columns both named "previous_ips"
 df.select(
     "*",
-    previous_domains.alias("previous_domains"),
-    F.array_except("domains", previous_domains).alias("new_domains"),
+    previous_ips.alias("previous_ips"),
+    F.array_except("ip_addresses", previous_ips).alias("new_ips"),
     F.col("user_id").alias("user_name"),
 )
 
 # Option D: bad - involves an additional Project stage
 df.withColumn(
-    "previous_domains", previous_domains
+    "previous_ips", previous_ips
 ).withColumn(
-    "new_domains", F.array_except("domains", "previous_domains")
+    "new_ips", F.array_except("ip_addresses", "previous_ips")
 ).withColumnRenamed(
     "user_id", "user_name"
 )
@@ -314,27 +312,27 @@ To better understand the differences between `select` and `withColumn`, compare 
 - Option A
 ```
 == Physical Plan ==
-*(1) Project [ip#10149, domains#10148, coalesce(previous_domains#10150, []) AS previous_domains#10194, array_except(domains#10148, coalesce(previous_domains#10150, [])) AS new_domains#10195, user_id#10151 AS user_name#10196]
-+- *(1) Scan ExistingRDD[domains#10148,ip#10149,previous_domains#10150,user_id#10151]
+*(1) Project [ip_addresses#74599, coalesce(previous_ips#74600, []) AS previous_ips#74642, array_except(ip_addresses#74599, coalesce(previous_ips#74600, [])) AS new_ips#74643, user_id#74601 AS user_name#74644]
++- *(1) Scan ExistingRDD[ip_addresses#74599,previous_ips#74600,user_id#74601]
 ```
-- Option B - note that `array_except` uses `"previous_domains#10150"` instead of `"previous_domains#10202"`
-```
-== Physical Plan ==
-*(1) Project [ip#10149, domains#10148, coalesce(previous_domains#10150, []) AS previous_domains#10202, array_except(domains#10148, previous_domains#10150) AS new_domains#10203, user_id#10151 AS user_name#10204]
-+- *(1) Scan ExistingRDD[domains#10148,ip#10149,previous_domains#10150,user_id#10151]
-```
-- Option C - note the duplicated column name: `"previous_domains#10150"` and `"previous_domains#10210"`
+- Option B - note that `array_except` uses `previous_ips#74600` instead of `previous_ips#74649`
 ```
 == Physical Plan ==
-*(1) Project [domains#10148, ip#10149, previous_domains#10150, user_id#10151, coalesce(previous_domains#10150, []) AS previous_domains#10210, array_except(domains#10148, coalesce(previous_domains#10150, [])) AS new_domains#10211, user_id#10151 AS user_name#10212]
-+- *(1) Scan ExistingRDD[domains#10148,ip#10149,previous_domains#10150,user_id#10151]
+*(1) Project [ip_addresses#74599, coalesce(previous_ips#74600, []) AS previous_ips#74649, array_except(ip_addresses#74599, previous_ips#74600) AS new_ips#74650, user_id#74601 AS user_name#74651]
++- *(1) Scan ExistingRDD[ip_addresses#74599,previous_ips#74600,user_id#74601]
 ```
-- Option D - replacing the `"previous_domains"` column introduces an additional `Project` stage
+- Option C - note the duplicated column name: `previous_ips#74600` and `previous_ips#74656`
 ```
 == Physical Plan ==
-*(1) Project [domains#10148, ip#10149, previous_domains#10220, user_id#10151 AS user_name#10231, array_except(domains#10148, previous_domains#10220) AS new_domains#10225]
-+- *(1) Project [domains#10148, ip#10149, coalesce(previous_domains#10150, []) AS previous_domains#10220, user_id#10151]
-   +- *(1) Scan ExistingRDD[domains#10148,ip#10149,previous_domains#10150,user_id#10151]
+*(1) Project [ip_addresses#74599, previous_ips#74600, user_id#74601, coalesce(previous_ips#74600, []) AS previous_ips#74656, array_except(ip_addresses#74599, coalesce(previous_ips#74600, [])) AS new_ips#74657, user_id#74601 AS user_name#74658]
++- *(1) Scan ExistingRDD[ip_addresses#74599,previous_ips#74600,user_id#74601]
+```
+- Option D - replacing the `previous_ips` column introduces an additional `Project` stage
+```
+== Physical Plan ==
+*(1) Project [ip_addresses#74599, previous_ips#74665, user_id#74601 AS user_name#74674, array_except(ip_addresses#74599, previous_ips#74665) AS new_ips#74669]
++- *(1) Project [ip_addresses#74599, coalesce(previous_ips#74600, []) AS previous_ips#74665, user_id#74601]
+   +- *(1) Scan ExistingRDD[ip_addresses#74599,previous_ips#74600,user_id#74601]
 ```
 
 ## Contributing
