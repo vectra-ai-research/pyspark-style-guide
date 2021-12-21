@@ -304,11 +304,10 @@ df.withColumn(
     "user_id", "user_name"
 )
 ```
-In addition to improving readability, using `select` to create new columns provides an additional advantage: `select` ensures that all of the columns are created in only one `Project` stage, whereas `withColumn` creates additional internal projection stages (see the caveat in the [PySpark documentation](https://spark.apache.org/docs/latest/api/python/reference/api/pyspark.sql.DataFrame.withColumn.html)). Using a single `select` statement simplifies the physical plan and will likely improve query performance. 
+In addition to improving readability, it is important to avoid chaining `withColumn` because it can create additional internal projection stages (see the caveat in the [PySpark documentation](https://spark.apache.org/docs/latest/api/python/reference/api/pyspark.sql.DataFrame.withColumn.html)).
+However, when adding just a single column, `withColumn` can often be a better stylistic choice than `select`.
 
-However, when adding just a single column, `select` and `withColumn` should yield the same physical plan. In that case, `withColumn` would be a better stylistic choice.
-
-To better understand the differences between `select` and `withColumn`, compare the physical plans for each of the examples above:
+To understand how a single `select` statement can simplify the physical plan and potentially improve query performance, compare these example physical plans that Spark built for each of the examples above:
 - Option A
 ```
 == Physical Plan ==
