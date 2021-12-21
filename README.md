@@ -23,6 +23,7 @@ This document is an evolving guide. We encourage your suggestions, additions, or
     - [Use descriptive names for dataframes](#use-descriptive-names-for-dataframes)
     - [Group related filters, keep unrelated filters as serial `filter` calls](#group-related-filters-keep-unrelated-filters-as-serial-filter-calls)
     - [Prefer use of window functions to equivalent re-joining operations](#prefer-use-of-window-functions-to-equivalent-re-joining-operations)
+    - [If feasible, `select` columns explicitly and avoid chaining `withColumn`](#if-feasible-select-columns-explicitly-and-avoid-chaining-withcolumn)
   - [Contributing](#contributing)
 
 
@@ -263,6 +264,75 @@ result = downloads.join(
 )
 ```
 The window function version is usually easier to get right and is usually more concise.
+
+
+### If feasible, `select` columns explicitly and avoid chaining `withColumn`
+```python
+previous_ips = F.coalesce("previous_ips", F.array([]))
+
+# Option A: good
+df.select(
+    "ip_addresses",
+    previous_ips.alias("previous_ips"),
+    F.array_except("ip_addresses", previous_ips).alias("new_ips"),
+    F.col("user_id").alias("user_name")
+)
+
+# Option B: bad - F.array_except uses the original "previous_ips" column
+# In this case, some values in the "new_ips" column may be null.
+df.select(
+    "ip_addresses",
+    previous_ips.alias("previous_ips"),
+    F.array_except("ip_addresses", "previous_ips").alias("new_ips"),
+    F.col("user_id").alias("user_name")
+)
+
+# Option C: bad - not explicit, selects two different columns both named "previous_ips"
+df.select(
+    "*",
+    previous_ips.alias("previous_ips"),
+    F.array_except("ip_addresses", previous_ips).alias("new_ips"),
+    F.col("user_id").alias("user_name"),
+)
+
+# Option D: bad - involves an additional Project stage
+df.withColumn(
+    "previous_ips", previous_ips
+).withColumn(
+    "new_ips", F.array_except("ip_addresses", "previous_ips")
+).withColumnRenamed(
+    "user_id", "user_name"
+)
+```
+In addition to improving readability, it is important to avoid chaining `withColumn` because it can create additional internal projection stages (see the caveat in the [PySpark documentation](https://spark.apache.org/docs/latest/api/python/reference/api/pyspark.sql.DataFrame.withColumn.html)).
+However, when adding just a single column, `withColumn` can often be a better stylistic choice than `select`.
+
+To understand how a single `select` statement can simplify the physical plan and potentially improve query performance, compare these example physical plans that Spark built for each of the examples above:
+- Option A
+```
+== Physical Plan ==
+*(1) Project [ip_addresses#74599, coalesce(previous_ips#74600, []) AS previous_ips#74642, array_except(ip_addresses#74599, coalesce(previous_ips#74600, [])) AS new_ips#74643, user_id#74601 AS user_name#74644]
++- *(1) Scan ExistingRDD[ip_addresses#74599,previous_ips#74600,user_id#74601]
+```
+- Option B - note that `array_except` uses `previous_ips#74600` instead of `previous_ips#74649`
+```
+== Physical Plan ==
+*(1) Project [ip_addresses#74599, coalesce(previous_ips#74600, []) AS previous_ips#74649, array_except(ip_addresses#74599, previous_ips#74600) AS new_ips#74650, user_id#74601 AS user_name#74651]
++- *(1) Scan ExistingRDD[ip_addresses#74599,previous_ips#74600,user_id#74601]
+```
+- Option C - note the duplicated column name: `previous_ips#74600` and `previous_ips#74656`
+```
+== Physical Plan ==
+*(1) Project [ip_addresses#74599, previous_ips#74600, user_id#74601, coalesce(previous_ips#74600, []) AS previous_ips#74656, array_except(ip_addresses#74599, coalesce(previous_ips#74600, [])) AS new_ips#74657, user_id#74601 AS user_name#74658]
++- *(1) Scan ExistingRDD[ip_addresses#74599,previous_ips#74600,user_id#74601]
+```
+- Option D - replacing the `previous_ips` column introduces an additional `Project` stage
+```
+== Physical Plan ==
+*(1) Project [ip_addresses#74599, previous_ips#74665, user_id#74601 AS user_name#74674, array_except(ip_addresses#74599, previous_ips#74665) AS new_ips#74669]
++- *(1) Project [ip_addresses#74599, coalesce(previous_ips#74600, []) AS previous_ips#74665, user_id#74601]
+   +- *(1) Scan ExistingRDD[ip_addresses#74599,previous_ips#74600,user_id#74601]
+```
 
 ## Contributing
 One of the main purposes of this document is to encourage consistency. Some choices made here are arbitrary, but we hope they will lead to more readable code. Other choices may prove wrong with more time and experience. Suggestions for changes to the guide or additions to it are welcome. Please feel free to create an issue or pull request to start a discussion.
